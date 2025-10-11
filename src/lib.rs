@@ -1249,12 +1249,16 @@ impl Glfw {
         unsafe {
             let mut count = 0;
             let ptr = ffi::glfwGetMonitors(&mut count);
-            let mut monitors = slice::from_raw_parts(ptr as *const _, count as usize)
-                .iter()
-                .map(|&ptr| Monitor { ptr })
-                .collect::<Vec<Monitor>>();
-
-            let refs: Vec<&mut Monitor> = monitors.iter_mut().collect();
+            let mut monitors;
+            let refs: Vec<&mut Monitor> = if ptr.is_null() {
+                Vec::new()
+            } else {
+                monitors = slice::from_raw_parts(ptr as *const _, count as usize)
+                    .iter()
+                    .map(|&ptr| Monitor { ptr })
+                    .collect::<Vec<Monitor>>();
+                monitors.iter_mut().collect()
+            };
             f(self, &refs)
         }
     }
@@ -2068,6 +2072,9 @@ impl Monitor {
         unsafe {
             let mut count = 0;
             let ptr = ffi::glfwGetVideoModes(self.ptr, &mut count);
+            if ptr.is_null() {
+                return Vec::new();
+            }
             slice::from_raw_parts(ptr, count as usize)
                 .iter()
                 .map(VidMode::from_glfw_vid_mode)
@@ -4084,6 +4091,9 @@ impl Joystick {
         unsafe {
             let mut count = 0;
             let ptr = ffi::glfwGetJoystickAxes(self.id as c_int, &mut count);
+            if ptr.is_null() {
+                return Vec::new();
+            }
             slice::from_raw_parts(ptr, count as usize)
                 .iter()
                 .map(|&a| a as f32)
@@ -4096,6 +4106,9 @@ impl Joystick {
         unsafe {
             let mut count = 0;
             let ptr = ffi::glfwGetJoystickButtons(self.id as c_int, &mut count);
+            if ptr.is_null() {
+                return Vec::new();
+            }
             slice::from_raw_parts(ptr, count as usize)
                 .iter()
                 .map(|&b| b as c_int)
@@ -4108,6 +4121,9 @@ impl Joystick {
         unsafe {
             let mut count = 0;
             let ptr = ffi::glfwGetJoystickHats(self.id as c_int, &mut count);
+            if ptr.is_null() {
+                return Vec::new();
+            }
             slice::from_raw_parts(ptr, count as usize)
                 .iter()
                 .map(|&b| mem::transmute(b as c_int))
