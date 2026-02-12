@@ -695,6 +695,7 @@ pub struct PixelImage {
 pub enum CursorMode {
     Normal = ffi::GLFW_CURSOR_NORMAL,
     Hidden = ffi::GLFW_CURSOR_HIDDEN,
+    Captured = ffi::GLFW_CURSOR_CAPTURED,
     Disabled = ffi::GLFW_CURSOR_DISABLED,
 }
 
