@@ -3750,27 +3750,31 @@ fn raw_window_handle<C: Context>(context: &C) -> RawWindowHandle {
     }
     #[cfg(all(
         any(target_os = "linux", target_os = "freebsd", target_os = "dragonfly"),
-        not(feature = "wayland")
+        any(feature = "x11", feature = "wayland")
     ))]
     {
-        use raw_window_handle::XlibWindowHandle;
-        let window =
-            unsafe { ffi::glfwGetX11Window(context.window_ptr()) as std::os::raw::c_ulong };
-        RawWindowHandle::Xlib(XlibWindowHandle::new(window))
-    }
-    #[cfg(all(
-        any(target_os = "linux", target_os = "freebsd", target_os = "dragonfly"),
-        feature = "wayland"
-    ))]
-    {
-        use std::ptr::NonNull;
-
-        use raw_window_handle::WaylandWindowHandle;
-        let surface = unsafe { ffi::glfwGetWaylandWindow(context.window_ptr()) };
-        let handle = WaylandWindowHandle::new(
-            NonNull::new(surface).expect("wayland window surface is null"),
-        );
-        RawWindowHandle::Wayland(handle)
+        let platform = unsafe { mem::transmute::<i32, Platform>(ffi::glfwGetPlatform()) };
+        match platform {
+            #[cfg(feature = "x11")]
+            Platform::X11 => {
+                use raw_window_handle::XlibWindowHandle;
+                let window = unsafe {
+                    ffi::glfwGetX11Window(context.window_ptr()) as std::os::raw::c_ulong
+                };
+                RawWindowHandle::Xlib(XlibWindowHandle::new(window))
+            }
+            #[cfg(feature = "wayland")]
+            Platform::Wayland => {
+                use std::ptr::NonNull;
+                use raw_window_handle::WaylandWindowHandle;
+                let surface = unsafe { ffi::glfwGetWaylandWindow(context.window_ptr()) };
+                let handle = WaylandWindowHandle::new(
+                    NonNull::new(surface).expect("wayland window surface is null"),
+                );
+                RawWindowHandle::Wayland(handle)
+            }
+            _ => panic!("Unsupported platform: {:?}", platform),
+        }
     }
     #[cfg(target_os = "macos")]
     {
@@ -3808,28 +3812,30 @@ fn raw_display_handle() -> RawDisplayHandle {
     }
     #[cfg(all(
         any(target_os = "linux", target_os = "freebsd", target_os = "dragonfly"),
-        not(feature = "wayland")
+        any(feature = "x11", feature = "wayland")
     ))]
     {
-        use std::ptr::NonNull;
-
-        use raw_window_handle::XlibDisplayHandle;
-        let display = NonNull::new(unsafe { ffi::glfwGetX11Display() });
-        let handle = XlibDisplayHandle::new(display, 0);
-        RawDisplayHandle::Xlib(handle)
-    }
-    #[cfg(all(
-        any(target_os = "linux", target_os = "freebsd", target_os = "dragonfly"),
-        feature = "wayland"
-    ))]
-    {
-        use std::ptr::NonNull;
-
-        use raw_window_handle::WaylandDisplayHandle;
-        let display = NonNull::new(unsafe { ffi::glfwGetWaylandDisplay().cast_mut() })
-            .expect("wayland display is null");
-        let handle = WaylandDisplayHandle::new(display);
-        RawDisplayHandle::Wayland(handle)
+        let platform = unsafe { mem::transmute::<i32, Platform>(ffi::glfwGetPlatform()) };
+        match platform {
+            #[cfg(feature = "x11")]
+            Platform::X11 => {
+                use std::ptr::NonNull;
+                use raw_window_handle::XlibDisplayHandle;
+                let display = NonNull::new(unsafe { ffi::glfwGetX11Display() });
+                let handle = XlibDisplayHandle::new(display, 0);
+                RawDisplayHandle::Xlib(handle)
+            }
+            #[cfg(feature = "wayland")]
+            Platform::Wayland => {
+                use std::ptr::NonNull;
+                use raw_window_handle::WaylandDisplayHandle;
+                let display = NonNull::new(unsafe { ffi::glfwGetWaylandDisplay().cast_mut() })
+                    .expect("wayland display is null");
+                let handle = WaylandDisplayHandle::new(display);
+                RawDisplayHandle::Wayland(handle)
+            }
+            _ => panic!("Unsupported platform: {:?}", platform),
+        }
     }
     #[cfg(target_os = "macos")]
     {
@@ -3859,24 +3865,29 @@ fn raw_window_handle<C: Context>(context: &C) -> RawWindowHandle {
     }
     #[cfg(all(
         any(target_os = "linux", target_os = "freebsd", target_os = "dragonfly"),
-        not(feature = "wayland")
+        any(feature = "x11", feature = "wayland")
     ))]
     {
-        use raw_window_handle::XlibWindowHandle;
-        let mut handle = XlibWindowHandle::empty();
-        handle.window =
-            unsafe { ffi::glfwGetX11Window(context.window_ptr()) as std::os::raw::c_ulong };
-        RawWindowHandle::Xlib(handle)
-    }
-    #[cfg(all(
-        any(target_os = "linux", target_os = "freebsd", target_os = "dragonfly"),
-        feature = "wayland"
-    ))]
-    {
-        use raw_window_handle::WaylandWindowHandle;
-        let mut handle = WaylandWindowHandle::empty();
-        handle.surface = unsafe { ffi::glfwGetWaylandWindow(context.window_ptr()) };
-        RawWindowHandle::Wayland(handle)
+        let platform = unsafe { mem::transmute::<i32, Platform>(ffi::glfwGetPlatform()) };
+        match platform {
+            #[cfg(feature = "x11")]
+            Platform::X11 => {
+                use raw_window_handle::XlibWindowHandle;
+                let mut handle = XlibWindowHandle::empty();
+                handle.window = unsafe {
+                    ffi::glfwGetX11Window(context.window_ptr()) as std::os::raw::c_ulong
+                };
+                RawWindowHandle::Xlib(handle)
+            }
+            #[cfg(feature = "wayland")]
+            Platform::Wayland => {
+                use raw_window_handle::WaylandWindowHandle;
+                let mut handle = WaylandWindowHandle::empty();
+                handle.surface = unsafe { ffi::glfwGetWaylandWindow(context.window_ptr()) };
+                RawWindowHandle::Wayland(handle)
+            }
+            _ => panic!("Unsupported platform: {:?}", platform),
+        }
     }
     #[cfg(target_os = "macos")]
     {
@@ -3917,23 +3928,28 @@ fn raw_display_handle() -> RawDisplayHandle {
     }
     #[cfg(all(
         any(target_os = "linux", target_os = "freebsd", target_os = "dragonfly"),
-        not(feature = "wayland")
+        any(feature = "x11", feature = "wayland")
     ))]
     {
-        use raw_window_handle::XlibDisplayHandle;
-        let mut handle = XlibDisplayHandle::empty();
-        handle.display = unsafe { ffi::glfwGetX11Display() };
-        RawDisplayHandle::Xlib(handle)
-    }
-    #[cfg(all(
-        any(target_os = "linux", target_os = "freebsd", target_os = "dragonfly"),
-        feature = "wayland"
-    ))]
-    {
-        use raw_window_handle::WaylandDisplayHandle;
-        let mut handle = WaylandDisplayHandle::empty();
-        handle.display = unsafe { ffi::glfwGetWaylandDisplay() };
-        RawDisplayHandle::Wayland(handle)
+        let platform = unsafe { mem::transmute::<i32, Platform>(ffi::glfwGetPlatform()) };
+        match platform {
+            #[cfg(feature = "x11")]
+            Platform::X11 => {
+                use raw_window_handle::XlibDisplayHandle;
+                let mut handle = XlibDisplayHandle::empty();
+                handle.display = unsafe { ffi::glfwGetX11Display() };
+                RawDisplayHandle::Xlib(handle)
+            }
+            #[cfg(feature = "wayland")]
+            Platform::Wayland => {
+                use raw_window_handle::WaylandDisplayHandle;
+                let mut handle = WaylandDisplayHandle::empty();
+                // the display expects a mutable pointer, but we have a const one
+                handle.display = unsafe { ffi::glfwGetWaylandDisplay().cast_mut() };
+                RawDisplayHandle::Wayland(handle)
+            }
+            _ => panic!("Unsupported platform: {:?}", platform),
+        }
     }
     #[cfg(target_os = "macos")]
     {
